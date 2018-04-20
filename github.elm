@@ -2,11 +2,18 @@ module GitHubStats exposing (..)
 
 import Html exposing (..)
 import Http
-import Json.Decode
+import Json.Decode exposing (at, string, field, decodeString)
 import Json.Encode as Encode
 
 type alias Model =
-    { response: String }
+    { message : String
+    , response : Maybe (List User)
+    }
+
+type alias User =
+    { id: String
+    , login: String
+    }
 
 -- UPDATE
 
@@ -14,12 +21,20 @@ type Msg
     = FetchGHData (Result Http.Error String)
     | None
 
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FetchGHData (Ok res) ->
-            ( { model | response = res }, Cmd.none )
+            let
+                result = decodeLogin res
+            in
+                case result of
+                    Just result ->
+                        ( { model | response = result }, Cmd.none )
+                    Nothing ->
+                        ( { model | response = Nothing }, Cmd.none )
+
+
 
         FetchGHData (Err res) ->
             ( { model | response = toString res }, Cmd.none )
@@ -27,13 +42,33 @@ update msg model =
         None ->
             ( model , Cmd.none )
 
+-- decodeLogin : Json.Decode.Decoder String -> String a
+decodeLogin response =
+    at ["data", "organization", "team", "member", "edges"] (login response)
+
+-- login : Json.Decode.Decoder String -> String
+login login =
+        id = Result.withDefault "" (field "id" string)
+        login =  Result.withDefault "" (field "login" string)
+        list = []
+
 
 -- VIEW
 
 
 view : Model -> Html Msg
 view model =
-    div [] [ text model.response ]
+    let
+        response = model.response
+    in
+        case response of
+            Just response ->
+                div [] (List.map user model.response)
+            Nothing ->
+                div [][]
+
+user user =
+    div [][ text user.id ]
 
 request : Http.Request String
 request =
@@ -57,25 +92,48 @@ ghQuery =
     """
     query {
       organization(login: "FracturedAtlas") {
-        name
-        id
-        repositories(last: 1) {
-          edges {
-            node {
-              name
-              pullRequests(last: 10) {
-                edges {
-                  node {
-                    number
-                  }
-                }
-              }  
+        team(slug: "fa-dev") {
+          members(first:2) {
+            edges {
+              node {
+                id
+                login
+              }
             }
           }
-        }  
+        }
       }
     }
     """
+    -- query {
+    --   organization(login: "FracturedAtlas") {
+    --     name
+    --     id
+    --     repositories(last: 5, orderBy: {field: PUSHED_AT, direction: ASC}) {
+    --       edges {
+    --         node {
+    --           name
+    --           pullRequests(last: 10, states: MERGED, author: "jgaskins") {
+    --             edges {
+    --               node {
+    --                 number
+    --                 title
+    --                 url
+    --                 author {
+    --                   login
+    --                 }
+    --                 additions
+    --                 deletions
+    --                 createdAt
+    --               }
+    --             }
+    --           }
+    --         }
+    --       }
+    --     }
+    --   }
+    -- }
+    -- """
 
 baseUrl : String
 baseUrl =
@@ -83,7 +141,6 @@ baseUrl =
 
 auth : String
 auth =
-    "Bearer <your api key here>" 
 
 init : (Model, Cmd Msg)
 init =
@@ -91,7 +148,9 @@ init =
 
 initialModel : Model
 initialModel =
-    { response = "Waiting for a response..." }
+    { response = Nothing
+    , message = "Waiting for a response..." 
+    }
 
 main : Program Never Model Msg
 main =
@@ -103,3 +162,4 @@ main =
         }
 
 -- https://github.com/dillonkearns/graphqelm
+-- http://package.elm-lang.org/packages/NoRedInk/elm-decode-pipeline/latest

@@ -4,15 +4,23 @@ import Html exposing (..)
 import Http
 import Json.Decode exposing (at, string, field, decodeString)
 import Json.Encode as Encode
+import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded, requiredAt)
 
 type alias Model =
     { message : String
-    , response : Maybe (List User)
+    , edges : Maybe Users
     }
 
+type alias Users =
+    { edges : List Node }
+
 type alias User =
-    { id: String
-    , login: String
+    { id:  String
+    , login : String
+    }
+
+type alias Node =
+    { node: User
     }
 
 -- UPDATE
@@ -25,50 +33,45 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         FetchGHData (Ok res) ->
-            let
-                result = decodeLogin res
-            in
-                case result of
-                    Just result ->
-                        ( { model | response = result }, Cmd.none )
-                    Nothing ->
-                        ( { model | response = Nothing }, Cmd.none )
-
-
+            case decodeString decodeLogin res of
+                Ok res ->
+                    ( { model | edges = Just res }, Cmd.none )
+                Err error ->
+                    ( { model | message = error, edges = Nothing }, Cmd.none )
 
         FetchGHData (Err res) ->
-            ( { model | response = toString res }, Cmd.none )
+            ( { model | edges = Nothing }, Cmd.none )
         
         None ->
             ( model , Cmd.none )
 
--- decodeLogin : Json.Decode.Decoder String -> String a
-decodeLogin response =
-    at ["data", "organization", "team", "member", "edges"] (login response)
+decodeLogin =
+    decode Users
+        |> requiredAt ["data", "organization", "team", "members", "edges"] (Json.Decode.list decodeNode)
 
--- login : Json.Decode.Decoder String -> String
-login login =
-        id = Result.withDefault "" (field "id" string)
-        login =  Result.withDefault "" (field "login" string)
-        list = []
+decodeNode =
+    decode Node
+        |> required "node" decodeUser
 
+decodeUser =
+    decode User
+        |> required "id" string
+        |> required "login" string
 
 -- VIEW
 
-
 view : Model -> Html Msg
 view model =
-    let
-        response = model.response
-    in
-        case response of
-            Just response ->
-                div [] (List.map user model.response)
-            Nothing ->
-                div [][]
+    div [] [ div [] [ text model.message]
+    , displayUsers model.edges
+    ]
 
-user user =
-    div [][ text user.id ]
+displayUsers users =
+    case users of 
+        Just users ->
+            div [] [ text (toString users) ]
+        Nothing ->
+            div [][]
 
 request : Http.Request String
 request =
@@ -105,35 +108,6 @@ ghQuery =
       }
     }
     """
-    -- query {
-    --   organization(login: "FracturedAtlas") {
-    --     name
-    --     id
-    --     repositories(last: 5, orderBy: {field: PUSHED_AT, direction: ASC}) {
-    --       edges {
-    --         node {
-    --           name
-    --           pullRequests(last: 10, states: MERGED, author: "jgaskins") {
-    --             edges {
-    --               node {
-    --                 number
-    --                 title
-    --                 url
-    --                 author {
-    --                   login
-    --                 }
-    --                 additions
-    --                 deletions
-    --                 createdAt
-    --               }
-    --             }
-    --           }
-    --         }
-    --       }
-    --     }
-    --   }
-    -- }
-    -- """
 
 baseUrl : String
 baseUrl =
@@ -141,6 +115,7 @@ baseUrl =
 
 auth : String
 auth =
+    "Bearer <your token>"
 
 init : (Model, Cmd Msg)
 init =
@@ -148,7 +123,7 @@ init =
 
 initialModel : Model
 initialModel =
-    { response = Nothing
+    { edges = Nothing
     , message = "Waiting for a response..." 
     }
 

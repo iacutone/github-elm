@@ -8,19 +8,19 @@ import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded, req
 
 type alias Model =
     { message : String
-    , edges : Maybe Users
+    , users : Maybe Users
     }
 
 type alias Users =
     { edges : List Node }
 
+type alias Node =
+    { node: User
+    }
+
 type alias User =
     { id:  String
     , login : String
-    }
-
-type alias Node =
-    { node: User
     }
 
 -- UPDATE
@@ -35,13 +35,13 @@ update msg model =
         FetchGHData (Ok res) ->
             case decodeString decodeLogin res of
                 Ok res ->
-                    ( { model | edges = Just res }, Cmd.none )
+                    ( { model | users = Just res }, Cmd.none )
                 Err error ->
-                    ( { model | message = error, edges = Nothing }, Cmd.none )
+                    ( { model | message = error, users = Nothing }, Cmd.none )
 
         FetchGHData (Err res) ->
-            ( { model | edges = Nothing }, Cmd.none )
-        
+            ( { model | users = Nothing }, Cmd.none )
+
         None ->
             ( model , Cmd.none )
 
@@ -62,16 +62,20 @@ decodeUser =
 
 view : Model -> Html Msg
 view model =
-    div [] [ div [] [ text model.message]
-    , displayUsers model.edges
-    ]
+    let 
+        users = model.users
+    in
+        case users of
+            Just users ->
+                let
+                    nodes = List.map .node users.edges
+                in
+                    ul [] (List.map displayUser nodes)
+            Nothing ->
+                div [] []
 
-displayUsers users =
-    case users of 
-        Just users ->
-            div [] [ text (toString users) ]
-        Nothing ->
-            div [][]
+displayUser user =
+    li [] [ text user.login ]
 
 request : Http.Request String
 request =
@@ -115,7 +119,7 @@ baseUrl =
 
 auth : String
 auth =
-    "Bearer <your token>"
+    -- "Bearer <your token>"
 
 init : (Model, Cmd Msg)
 init =
@@ -123,7 +127,7 @@ init =
 
 initialModel : Model
 initialModel =
-    { edges = Nothing
+    { users = Nothing
     , message = "Waiting for a response..." 
     }
 
@@ -136,5 +140,3 @@ main =
         , subscriptions = \_ -> Sub.none
         }
 
--- https://github.com/dillonkearns/graphqelm
--- http://package.elm-lang.org/packages/NoRedInk/elm-decode-pipeline/latest

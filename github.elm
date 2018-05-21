@@ -1,14 +1,18 @@
 module GitHubStats exposing (..)
 
 import Html exposing (..)
+import Html.Attributes exposing (href)
+import Html.Events exposing (onClick)
 import Http
-import Json.Decode exposing (at, string, field, decodeString)
+import Json.Decode exposing (at, string, field, decodeString, int)
 import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded, requiredAt)
+import Regex exposing (replace, regex)
 
 type alias Model =
     { message : String
     , users : Maybe Users
+    , pullRequests : String
     }
 
 type alias Users =
@@ -23,24 +27,54 @@ type alias User =
     , login : String
     }
 
+type alias PullRequests =
+    { nodes : List PullRequest }
+
+type alias PullRequest =
+    { typename: String
+    , number : Int
+    , title : String
+    , createdAt : String
+    , additions : String
+    , deletions : String
+    }
+
 -- UPDATE
 
 type Msg
-    = FetchGHData (Result Http.Error String)
+    = ParseUsersJson (Result Http.Error String)
+    | ParsePullRequestJson (Result Http.Error String)
+    | DisplayData String
     | None
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        FetchGHData (Ok res) ->
+        ParseUsersJson (Ok res) ->
             case decodeString decodeLogin res of
                 Ok res ->
-                    ( { model | users = Just res }, Cmd.none )
+                    ( { model | users = Just res, message = "" }, Cmd.none )
                 Err error ->
                     ( { model | message = error, users = Nothing }, Cmd.none )
 
-        FetchGHData (Err res) ->
+        ParseUsersJson (Err res) ->
             ( { model | users = Nothing }, Cmd.none )
+
+        DisplayData user ->
+            let
+                json = Regex.replace Regex.All (Regex.regex "user") (\_ -> user) getUserPullRequests
+            in
+                ( model, Http.send ParsePullRequestJson (request json) )
+
+        ParsePullRequestJson (Ok res) ->
+            case decodeString decodePullRequests res of
+                Ok res ->
+                    ( { model | pullRequests = toString res }, Cmd.none )
+                Err error ->
+                    ( { model | message = error, users = Nothing }, Cmd.none )
+
+        ParsePullRequestJson (Err res) ->
+            ( { model | users = Nothing, message = toString res }, Cmd.none )
 
         None ->
             ( model , Cmd.none )
@@ -58,6 +92,19 @@ decodeUser =
         |> required "id" string
         |> required "login" string
 
+decodePullRequests =
+    decode PullRequests
+        |> requiredAt ["data", "search", "nodes"] (Json.Decode.list decodePullRequest)
+
+decodePullRequest =
+    decode PullRequest
+        |> required "__typename" string
+        |> required "number" int
+        |> required "title" string
+        |> required "createdAt" string
+        |> required "additions" string
+        |> required "deletions" string
+
 -- VIEW
 
 view : Model -> Html Msg
@@ -70,15 +117,18 @@ view model =
                 let
                     nodes = List.map .node users.edges
                 in
-                    ul [] (List.map displayUser nodes)
+                    div [] [ ul [] (List.map displayUser nodes)
+                        , div [] [ text model.pullRequests ]
+                        , div [] [ text model.message ]
+                        ]
             Nothing ->
                 div [] []
 
 displayUser user =
-    li [] [ text user.login ]
+    li [] [ a [ href "#", onClick (DisplayData user.login) ] [ text user.login ] ]
 
-request : Http.Request String
-request =
+request : String -> Http.Request String
+request query =
     let
         headers =
             [ Http.header "Authorization" auth
@@ -88,14 +138,14 @@ request =
             { method = "POST"
             , headers = headers
             , url = baseUrl
-            , body = Http.jsonBody (Encode.object [("query", Encode.string ghQuery)])
+            , body = Http.jsonBody (Encode.object [("query", Encode.string query)])
             , expect = Http.expectString
             , timeout = Nothing
             , withCredentials = False
             }
 
-ghQuery : String
-ghQuery =
+getUsers : String
+getUsers =
     """
     query {
       organization(login: "FracturedAtlas") {
@@ -113,6 +163,28 @@ ghQuery =
     }
     """
 
+getUserPullRequests : String
+getUserPullRequests =
+    """
+    query {
+      search(type: ISSUE, query: "org:fracturedatlas type:PR is:MERGED author:user", last: 10) {
+        nodes {
+          __typename
+          ... on PullRequest {
+            number
+            title
+            createdAt
+            additions
+            deletions
+            repository {
+              name
+            }
+          }
+        }
+      }
+    }
+    """
+
 baseUrl : String
 baseUrl =
     "https://api.github.com/graphql"
@@ -123,11 +195,12 @@ auth =
 
 init : (Model, Cmd Msg)
 init =
-    ( initialModel, Http.send FetchGHData request )
+    ( initialModel, Http.send ParseUsersJson (request getUsers))
 
 initialModel : Model
 initialModel =
     { users = Nothing
+    , pullRequests = ""
     , message = "Waiting for a response..." 
     }
 

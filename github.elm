@@ -12,7 +12,7 @@ import Regex exposing (replace, regex)
 type alias Model =
     { message : String
     , users : Maybe Users
-    , pullRequests : String
+    , pullRequests : Maybe PullRequests
     }
 
 type alias Users =
@@ -32,11 +32,12 @@ type alias PullRequests =
 
 type alias PullRequest =
     { typename: String
-    , number : Int
+    , prNumber : Int
     , title : String
     , createdAt : String
-    , additions : String
-    , deletions : String
+    , additions : Int
+    , deletions : Int
+    , repoName : String
     }
 
 -- UPDATE
@@ -69,7 +70,7 @@ update msg model =
         ParsePullRequestJson (Ok res) ->
             case decodeString decodePullRequests res of
                 Ok res ->
-                    ( { model | pullRequests = toString res }, Cmd.none )
+                    ( { model | pullRequests = Just res }, Cmd.none )
                 Err error ->
                     ( { model | message = error, users = Nothing }, Cmd.none )
 
@@ -102,13 +103,20 @@ decodePullRequest =
         |> required "number" int
         |> required "title" string
         |> required "createdAt" string
-        |> required "additions" string
-        |> required "deletions" string
+        |> required "additions" int
+        |> required "deletions" int
+        |> requiredAt [ "repository", "name" ] string
 
 -- VIEW
 
 view : Model -> Html Msg
 view model =
+    div [] [ div [] [ displayUsers model ]
+    , div [] [ displayPullRequests model ] 
+    ]
+
+displayUsers : Model -> Html Msg
+displayUsers model =
     let 
         users = model.users
     in
@@ -118,14 +126,32 @@ view model =
                     nodes = List.map .node users.edges
                 in
                     div [] [ ul [] (List.map displayUser nodes)
-                        , div [] [ text model.pullRequests ]
                         , div [] [ text model.message ]
                         ]
+
             Nothing ->
                 div [] []
 
+displayUser : User -> Html Msg
 displayUser user =
     li [] [ a [ href "#", onClick (DisplayData user.login) ] [ text user.login ] ]
+
+displayPullRequests : Model -> Html Msg
+displayPullRequests model =
+    let 
+        pullRequests = model.pullRequests
+    in
+        case pullRequests of
+            Just pullRequests ->
+                div [] [ ul [] (List.map displayPullRequest pullRequests.nodes)
+                    , div [] [ text model.message ]
+                    ]
+            Nothing ->
+                div [] []
+
+displayPullRequest : PullRequest -> Html Msg
+displayPullRequest pr =
+    li [] [ text pr.title ]
 
 request : String -> Http.Request String
 request query =
@@ -200,7 +226,7 @@ init =
 initialModel : Model
 initialModel =
     { users = Nothing
-    , pullRequests = ""
+    , pullRequests = Nothing
     , message = "Waiting for a response..." 
     }
 

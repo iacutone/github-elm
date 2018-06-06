@@ -1,7 +1,7 @@
 module GitHubStats exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (href)
+import Html.Attributes exposing (href, class, target)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode exposing (at, string, field, decodeString, int)
@@ -13,6 +13,7 @@ type alias Model =
     { message : String
     , users : Maybe Users
     , pullRequests : Maybe PullRequests
+    , currentUser : String
     }
 
 type alias Users =
@@ -23,7 +24,7 @@ type alias Node =
     }
 
 type alias User =
-    { id:  String
+    { id :  String
     , login : String
     }
 
@@ -38,6 +39,7 @@ type alias PullRequest =
     , additions : Int
     , deletions : Int
     , repoName : String
+    , url : String
     }
 
 -- UPDATE
@@ -106,6 +108,7 @@ decodePullRequest =
         |> required "additions" int
         |> required "deletions" int
         |> requiredAt [ "repository", "name" ] string
+        |> required "url" string
 
 -- VIEW
 
@@ -143,15 +146,36 @@ displayPullRequests model =
     in
         case pullRequests of
             Just pullRequests ->
-                div [] [ ul [] (List.map displayPullRequest pullRequests.nodes)
-                    , div [] [ text model.message ]
+                div [ class "table-wrapper" ] [ table [] [ caption [] [ h1 [] [ text ("Lines of Code per Pull Request by " ++ model.currentUser) ] ] ]
+                    , thead [] [ tr [] [ th [] [ text "PR" ]
+                                        , th [] [ text "Title" ]
+                                        , th [] [ text "Repo" ]
+                                        , th [] [ text "Date Created" ]
+                                        , th [] [ text "LoC" ] 
+                                        ] 
+                                ]
+                    , tbody [] (List.map pullRequestDataRow pullRequests.nodes)
                     ]
             Nothing ->
                 div [] []
 
-displayPullRequest : PullRequest -> Html Msg
-displayPullRequest pr =
-    li [] [ text pr.title ]
+pullRequestDataRow : PullRequest -> Html Msg
+pullRequestDataRow pullRequest =
+    tr [] [ th [] [ a [ href pullRequest.url, target "_blank" ] [ text (toString pullRequest.prNumber) ] ]
+        , td [] [  text pullRequest.title ]
+        , td [] [ text pullRequest.repoName ]
+        , td [] [ text pullRequest.createdAt ]
+        , td [] [ ul [ class "list-reset" ] [ li [] [ text (toString pullRequest.additions) ] ] 
+        , li [] [ text (toString pullRequest.deletions) ]]
+        , li [] [ text (locChange pullRequest.additions pullRequest.deletions) ]
+        ]
+
+locChange : Int -> Int -> String
+locChange additions deletions =
+    let
+        diff = additions - deletions
+    in
+        toString diff
 
 request : String -> Http.Request String
 request query =
@@ -202,6 +226,7 @@ getUserPullRequests =
             createdAt
             additions
             deletions
+            url
             repository {
               name
             }
@@ -228,6 +253,7 @@ initialModel =
     { users = Nothing
     , pullRequests = Nothing
     , message = "Waiting for a response..." 
+    , currentUser = ""
     }
 
 main : Program Never Model Msg

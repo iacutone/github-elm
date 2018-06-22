@@ -11,21 +11,30 @@ import Regex exposing (replace, regex)
 
 type alias Model =
     { message : String
-    , users : Maybe Users
+    , organization : Maybe Organization
     , pullRequests : Maybe PullRequests
     , currentUser : String
     }
 
-type alias Users =
-    { edges : List Node }
-
-type alias Node =
-    { node: User
+type alias Organization =
+    { users : List Users
+    , repos : List Repos
     }
+
+type alias Users =
+    { node : User }
+
+type alias Repos =
+    { node : Repo }
 
 type alias User =
     { id :  String
     , login : String
+    }
+
+type alias Repo =
+    { id : String
+    , name : String 
     }
 
 type alias PullRequests =
@@ -54,46 +63,56 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ParseUsersJson (Ok res) ->
-            case decodeString decodeLogin res of
+            case decodeString decodeOrganization res of
                 Ok res ->
-                    ( { model | users = Just res, message = "" }, Cmd.none )
+                    ( { model | organization = Just res, message = "" }, Cmd.none )
                 Err error ->
-                    ( { model | message = error, users = Nothing }, Cmd.none )
+                    ( { model | message = error, organization = Nothing }, Cmd.none )
 
         ParseUsersJson (Err res) ->
-            ( { model | users = Nothing }, Cmd.none )
+            ( { model | organization = Nothing }, Cmd.none )
 
         DisplayData user ->
             let
                 json = Regex.replace Regex.All (Regex.regex "user") (\_ -> user) getUserPullRequests
             in
-                ( model, Http.send ParsePullRequestJson (request json) )
+                ( { model | currentUser = user }, Http.send ParsePullRequestJson (request json) )
 
         ParsePullRequestJson (Ok res) ->
             case decodeString decodePullRequests res of
                 Ok res ->
                     ( { model | pullRequests = Just res }, Cmd.none )
                 Err error ->
-                    ( { model | message = error, users = Nothing }, Cmd.none )
+                    ( { model | message = error}, Cmd.none )
 
         ParsePullRequestJson (Err res) ->
-            ( { model | users = Nothing, message = toString res }, Cmd.none )
+            ( { model | message = toString res }, Cmd.none )
 
         None ->
             ( model , Cmd.none )
 
-decodeLogin =
-    decode Users
-        |> requiredAt ["data", "organization", "team", "members", "edges"] (Json.Decode.list decodeNode)
+decodeOrganization =
+    decode Organization
+        |> requiredAt ["data", "organization", "team", "members", "edges"] (Json.Decode.list decodeUsers)
+        |> requiredAt ["data", "organization", "repositories", "edges"] (Json.Decode.list decodeRepos)
 
-decodeNode =
-    decode Node
+decodeUsers =
+    decode Users
         |> required "node" decodeUser
+
+decodeRepos =
+    decode Repos
+        |> required "node" decodeRepo
 
 decodeUser =
     decode User
         |> required "id" string
         |> required "login" string
+
+decodeRepo =
+    decode Repo
+        |> required "id" string
+        |> required "name" string
 
 decodePullRequests =
     decode PullRequests
@@ -114,21 +133,25 @@ decodePullRequest =
 
 view : Model -> Html Msg
 view model =
-    div [] [ div [] [ displayUsers model ]
+    div [] [ div [] [ displayOrganization model ]
     , div [] [ displayPullRequests model ] 
     ]
 
-displayUsers : Model -> Html Msg
-displayUsers model =
-    let 
-        users = model.users
+displayOrganization : Model -> Html Msg
+displayOrganization model =
+    let
+        organization = model.organization
     in
-        case users of
-            Just users ->
-                let
-                    nodes = List.map .node users.edges
+        case organization of
+            Just organization ->
+                let 
+                    users = organization.users
+                    repos = organization.repos
+                    userNodes = List.map .node users
+                    repoNodes = List.map .node repos
                 in
-                    div [] [ ul [] (List.map displayUser nodes)
+                    div [] [ ul [] (List.map displayUser userNodes)
+                        , ul [] (List.map displayRepo repoNodes)
                         , div [] [ text model.message ]
                         ]
 
@@ -138,6 +161,10 @@ displayUsers model =
 displayUser : User -> Html Msg
 displayUser user =
     li [] [ a [ href "#", onClick (DisplayData user.login) ] [ text user.login ] ]
+
+displayRepo : Repo -> Html Msg
+displayRepo repo =
+    li [] [ a [ href "#" ] [ text repo.name ] ]
 
 displayPullRequests : Model -> Html Msg
 displayPullRequests model =
@@ -194,11 +221,19 @@ request query =
             , withCredentials = False
             }
 
-getUsers : String
-getUsers =
+getUsersAndRepos : String
+getUsersAndRepos =
     """
     query {
       organization(login: "FracturedAtlas") {
+        repositories(last:3) {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
         team(slug: "fa-dev") {
           members(first:2) {
             edges {
@@ -236,6 +271,28 @@ getUserPullRequests =
     }
     """
 
+getRepoPullRequests : String
+getRepoPullRequests =
+    """
+    query {
+      repository(owner: "FracturedAtlas", name: "FundingWorks") {
+        pullRequests(last: 3) {
+          nodes {
+            number
+            title
+            createdAt
+            additions
+            deletions
+            url
+            author {
+              login
+            }
+          }
+        }
+      }
+    }
+    """
+
 baseUrl : String
 baseUrl =
     "https://api.github.com/graphql"
@@ -246,11 +303,11 @@ auth =
 
 init : (Model, Cmd Msg)
 init =
-    ( initialModel, Http.send ParseUsersJson (request getUsers))
+    ( initialModel, Http.send ParseUsersJson (request getUsersAndRepos))
 
 initialModel : Model
 initialModel =
-    { users = Nothing
+    { organization = Nothing
     , pullRequests = Nothing
     , message = "Waiting for a response..." 
     , currentUser = ""

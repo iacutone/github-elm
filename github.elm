@@ -12,8 +12,10 @@ import Regex exposing (replace, regex)
 type alias Model =
     { message : String
     , organization : Maybe Organization
-    , pullRequests : Maybe PullRequests
+    , userPullRequests : Maybe UserPullRequests
+    , repoPullRequests : Maybe RepoPullRequests
     , currentUser : String
+    , currentRepo : String
     }
 
 type alias Organization =
@@ -37,10 +39,13 @@ type alias Repo =
     , name : String 
     }
 
-type alias PullRequests =
-    { nodes : List PullRequest }
+type alias UserPullRequests =
+    { nodes : List UserPullRequest }
 
-type alias PullRequest =
+type alias RepoPullRequests =
+    { nodes : List RepoPullRequest }
+
+type alias UserPullRequest =
     { typename: String
     , prNumber : Int
     , title : String
@@ -51,12 +56,23 @@ type alias PullRequest =
     , url : String
     }
 
+type alias RepoPullRequest =
+    { prNumber : Int
+    , title : String
+    , createdAt : String
+    , additions : Int
+    , deletions : Int
+    , author : String
+    , url : String
+    }
 -- UPDATE
 
 type Msg
     = ParseUsersJson (Result Http.Error String)
-    | ParsePullRequestJson (Result Http.Error String)
-    | DisplayData String
+    | ParseUserPullRequestJson (Result Http.Error String)
+    | ParseRepoPullRequestJson (Result Http.Error String)
+    | DisplayUserData String
+    | DisplayRepoData String
     | None
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -72,21 +88,38 @@ update msg model =
         ParseUsersJson (Err res) ->
             ( { model | organization = Nothing }, Cmd.none )
 
-        DisplayData user ->
+        DisplayUserData user ->
             let
                 json = Regex.replace Regex.All (Regex.regex "user") (\_ -> user) getUserPullRequests
             in
-                ( { model | currentUser = user }, Http.send ParsePullRequestJson (request json) )
+                ( { model | currentUser = user }, Http.send ParseUserPullRequestJson (request json) )
 
-        ParsePullRequestJson (Ok res) ->
-            case decodeString decodePullRequests res of
+        DisplayRepoData repo ->
+            let
+                json = Regex.replace Regex.All (Regex.regex "repoName") (\_ -> repo) getRepoPullRequests
+            in
+                ( { model | currentRepo = repo }, Http.send ParseRepoPullRequestJson (request json) )
+
+        ParseUserPullRequestJson (Ok res) ->
+            case decodeString decodeUserPullRequests res of
                 Ok res ->
-                    ( { model | pullRequests = Just res }, Cmd.none )
+                    ( { model | userPullRequests = Just res }, Cmd.none )
                 Err error ->
-                    ( { model | message = error}, Cmd.none )
+                    ( { model | message = error }, Cmd.none )
 
-        ParsePullRequestJson (Err res) ->
+        ParseUserPullRequestJson (Err res) ->
             ( { model | message = toString res }, Cmd.none )
+
+        ParseRepoPullRequestJson (Ok res) ->
+            case decodeString decodeRepoPullRequests res of
+                Ok res ->
+                    ( { model | repoPullRequests = Just res }, Cmd.none )
+                Err error ->
+                    ( { model | message = error }, Cmd.none )
+
+        ParseRepoPullRequestJson (Err res) ->
+            ( { model | message = toString res }, Cmd.none )
+
 
         None ->
             ( model , Cmd.none )
@@ -114,12 +147,16 @@ decodeRepo =
         |> required "id" string
         |> required "name" string
 
-decodePullRequests =
-    decode PullRequests
-        |> requiredAt ["data", "search", "nodes"] (Json.Decode.list decodePullRequest)
+decodeUserPullRequests =
+    decode UserPullRequests
+        |> requiredAt ["data", "search", "nodes"] (Json.Decode.list decodeUserPullRequest)
 
-decodePullRequest =
-    decode PullRequest
+decodeRepoPullRequests =
+    decode RepoPullRequests
+        |> requiredAt ["data", "repository", "pullRequests", "nodes"] (Json.Decode.list decodeRepoPullRequest)
+
+decodeUserPullRequest =
+    decode UserPullRequest
         |> required "__typename" string
         |> required "number" int
         |> required "title" string
@@ -129,12 +166,23 @@ decodePullRequest =
         |> requiredAt [ "repository", "name" ] string
         |> required "url" string
 
+decodeRepoPullRequest =
+    decode RepoPullRequest
+        |> required "number" int
+        |> required "title" string
+        |> required "createdAt" string
+        |> required "additions" int
+        |> required "deletions" int
+        |> requiredAt [ "author", "login" ] string
+        |> required "url" string
+
 -- VIEW
 
 view : Model -> Html Msg
 view model =
     div [] [ div [] [ displayOrganization model ]
-    , div [] [ displayPullRequests model ] 
+    , div [] [ displayUserPullRequests model ] 
+    , div [] [ displayRepoPullRequests model ]
     ]
 
 displayOrganization : Model -> Html Msg
@@ -160,16 +208,16 @@ displayOrganization model =
 
 displayUser : User -> Html Msg
 displayUser user =
-    li [] [ a [ href "#", onClick (DisplayData user.login) ] [ text user.login ] ]
+    li [] [ a [ href "#", onClick (DisplayUserData user.login) ] [ text user.login ] ]
 
 displayRepo : Repo -> Html Msg
 displayRepo repo =
-    li [] [ a [ href "#" ] [ text repo.name ] ]
+    li [] [ a [ href "#", onClick (DisplayRepoData repo.name) ] [ text repo.name ] ]
 
-displayPullRequests : Model -> Html Msg
-displayPullRequests model =
+displayUserPullRequests : Model -> Html Msg
+displayUserPullRequests model =
     let 
-        pullRequests = model.pullRequests
+        pullRequests = model.userPullRequests
     in
         case pullRequests of
             Just pullRequests ->
@@ -181,16 +229,47 @@ displayPullRequests model =
                                         , th [] [ text "LoC" ] 
                                         ] 
                                 ]
-                    , tbody [] (List.map pullRequestDataRow pullRequests.nodes)
+                    , tbody [] (List.map userPullRequestDataRow pullRequests.nodes)
                     ]
             Nothing ->
                 div [] []
 
-pullRequestDataRow : PullRequest -> Html Msg
-pullRequestDataRow pullRequest =
+displayRepoPullRequests : Model -> Html Msg
+displayRepoPullRequests model =
+    let 
+        pullRequests = model.repoPullRequests
+    in
+        case pullRequests of
+            Just pullRequests ->
+                div [ class "table-wrapper" ] [ table [] [ caption [] [ h1 [] [ text ("Lines of Code for Pull Request " ++ model.currentRepo) ] ] ]
+                    , thead [] [ tr [] [ th [] [ text "PR" ]
+                                        , th [] [ text "Title" ]
+                                        , th [] [ text "Author" ]
+                                        , th [] [ text "Date Created" ]
+                                        , th [] [ text "LoC" ] 
+                                        ] 
+                                ]
+                    , tbody [] (List.map repoPullRequestDataRow pullRequests.nodes)
+                    ]
+            Nothing ->
+                div [] []
+
+userPullRequestDataRow : UserPullRequest -> Html Msg
+userPullRequestDataRow pullRequest =
     tr [] [ th [] [ a [ href pullRequest.url, target "_blank" ] [ text (toString pullRequest.prNumber) ] ]
         , td [] [  text pullRequest.title ]
         , td [] [ text pullRequest.repoName ]
+        , td [] [ text pullRequest.createdAt ]
+        , td [] [ ul [ class "list-reset" ] [ li [] [ text (toString pullRequest.additions) ] ] 
+        , li [] [ text (toString pullRequest.deletions) ]]
+        , li [] [ text (locChange pullRequest.additions pullRequest.deletions) ]
+        ]
+
+repoPullRequestDataRow : RepoPullRequest -> Html Msg
+repoPullRequestDataRow pullRequest =
+    tr [] [ th [] [ a [ href pullRequest.url, target "_blank" ] [ text (toString pullRequest.prNumber) ] ]
+        , td [] [  text pullRequest.title ]
+        , td [] [ text pullRequest.author ]
         , td [] [ text pullRequest.createdAt ]
         , td [] [ ul [ class "list-reset" ] [ li [] [ text (toString pullRequest.additions) ] ] 
         , li [] [ text (toString pullRequest.deletions) ]]
@@ -275,7 +354,7 @@ getRepoPullRequests : String
 getRepoPullRequests =
     """
     query {
-      repository(owner: "FracturedAtlas", name: "FundingWorks") {
+      repository(owner: "FracturedAtlas", name: "repoName") {
         pullRequests(last: 3) {
           nodes {
             number
@@ -308,9 +387,11 @@ init =
 initialModel : Model
 initialModel =
     { organization = Nothing
-    , pullRequests = Nothing
+    , userPullRequests = Nothing
+    , repoPullRequests = Nothing
     , message = "Waiting for a response..." 
     , currentUser = ""
+    , currentRepo = ""
     }
 
 main : Program Never Model Msg

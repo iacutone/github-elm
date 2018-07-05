@@ -65,6 +65,11 @@ type alias RepoPullRequest =
     , author : String
     , url : String
     }
+
+type PullRequestButton = 
+    UserPullRequestButton
+    | RepoPullRequestButton
+
 -- UPDATE
 
 type Msg
@@ -73,6 +78,8 @@ type Msg
     | ParseRepoPullRequestJson (Result Http.Error String)
     | DisplayUserData String
     | DisplayRepoData String
+    | UpdateUserPullRequestQuantity String
+    | UpdateRepoPullRequestQuantity String
     | None
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -120,6 +127,19 @@ update msg model =
         ParseRepoPullRequestJson (Err res) ->
             ( { model | message = toString res }, Cmd.none )
 
+        UpdateUserPullRequestQuantity num ->
+            let
+                json = Regex.replace Regex.All (Regex.regex "10") (\_ -> num) getUserPullRequests
+                updated = Regex.replace Regex.All (Regex.regex "user") (\_ -> model.currentUser) json
+            in
+                ( model, Http.send ParseUserPullRequestJson (request updated) )
+
+        UpdateRepoPullRequestQuantity num ->
+            let
+                json = Regex.replace Regex.All (Regex.regex "10") (\_ -> num) getRepoPullRequests
+                updated = Regex.replace Regex.All (Regex.regex "repoName") (\_ -> model.currentRepo) json
+            in
+                ( model, Http.send ParseRepoPullRequestJson (request updated) )
 
         None ->
             ( model , Cmd.none )
@@ -221,7 +241,8 @@ displayUserPullRequests model =
     in
         case pullRequests of
             Just pullRequests ->
-                div [ class "table-wrapper" ] [ table [] [ caption [] [ h1 [] [ text ("Pull Requests by " ++ model.currentUser) ] ]
+                div [ class "table-wrapper" ] [ div [] [ pullRequestQuantityButtons UserPullRequestButton ]
+                    , table [] [ caption [] [ h1 [] [ text ("Pull Requests by " ++ model.currentUser) ] ]
                     , thead [] [ tr [] [ th [] [ text "PR" ]
                                         , th [] [ text "Title" ]
                                         , th [] [ text "Repo" ]
@@ -235,6 +256,20 @@ displayUserPullRequests model =
             Nothing ->
                 div [] []
 
+pullRequestQuantityButtons : PullRequestButton -> Html Msg
+pullRequestQuantityButtons pullRequestsButton =
+    case pullRequestsButton of
+        UserPullRequestButton ->
+            div [] [ button [ onClick (UpdateUserPullRequestQuantity "10") ] [ text "10" ]
+                , button [ onClick (UpdateUserPullRequestQuantity "20") ] [ text "20" ]
+                , button [ onClick (UpdateUserPullRequestQuantity "50") ] [ text "50" ]
+                ]
+        RepoPullRequestButton ->
+            div [] [ button [ onClick (UpdateRepoPullRequestQuantity "10") ] [ text "10" ]
+                , button [ onClick (UpdateRepoPullRequestQuantity "20") ] [ text "20" ]
+                , button [ onClick (UpdateRepoPullRequestQuantity "50") ] [ text "50" ]
+                ]
+
 displayRepoPullRequests : Model -> Html Msg
 displayRepoPullRequests model =
     let 
@@ -242,7 +277,8 @@ displayRepoPullRequests model =
     in
         case pullRequests of
             Just pullRequests ->
-                div [ class "table-wrapper" ] [ table [] [ caption [] [ h1 [] [ text ("Pull Requests in " ++ model.currentRepo) ] ]
+                div [ class "table-wrapper" ] [ div [][ pullRequestQuantityButtons RepoPullRequestButton ]
+                    , table [] [ caption [] [ h1 [] [ text ("Pull Requests in " ++ model.currentRepo) ] ]
                     , thead [] [ tr [] [ th [] [ text "PR" ]
                                         , th [] [ text "Title" ]
                                         , th [] [ text "Author" ]

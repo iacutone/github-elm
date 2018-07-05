@@ -221,7 +221,7 @@ displayUserPullRequests model =
     in
         case pullRequests of
             Just pullRequests ->
-                div [ class "table-wrapper" ] [ table [] [ caption [] [ h1 [] [ text ("Lines of Code per Pull Request by " ++ model.currentUser) ] ] ]
+                div [ class "table-wrapper" ] [ table [] [ caption [] [ h1 [] [ text ("Pull Requests by " ++ model.currentUser) ] ]
                     , thead [] [ tr [] [ th [] [ text "PR" ]
                                         , th [] [ text "Title" ]
                                         , th [] [ text "Repo" ]
@@ -231,6 +231,7 @@ displayUserPullRequests model =
                                 ]
                     , tbody [] (List.map userPullRequestDataRow pullRequests.nodes)
                     ]
+                ]
             Nothing ->
                 div [] []
 
@@ -241,7 +242,7 @@ displayRepoPullRequests model =
     in
         case pullRequests of
             Just pullRequests ->
-                div [ class "table-wrapper" ] [ table [] [ caption [] [ h1 [] [ text ("Lines of Code for Pull Request " ++ model.currentRepo) ] ] ]
+                div [ class "table-wrapper" ] [ table [] [ caption [] [ h1 [] [ text ("Pull Requests in " ++ model.currentRepo) ] ]
                     , thead [] [ tr [] [ th [] [ text "PR" ]
                                         , th [] [ text "Title" ]
                                         , th [] [ text "Author" ]
@@ -251,6 +252,7 @@ displayRepoPullRequests model =
                                 ]
                     , tbody [] (List.map repoPullRequestDataRow pullRequests.nodes)
                     ]
+                ]
             Nothing ->
                 div [] []
 
@@ -305,7 +307,7 @@ getUsersAndRepos =
     """
     query {
       organization(login: "FracturedAtlas") {
-        repositories(last:3) {
+        repositories(last: 3, orderBy: {field: PUSHED_AT, direction: ASC}) {
           edges {
             node {
               id
@@ -314,7 +316,7 @@ getUsersAndRepos =
           }
         }
         team(slug: "fa-dev") {
-          members(first:2) {
+          members(first: 2, orderBy: {field: LOGIN, direction: ASC}) {
             edges {
               node {
                 id
@@ -331,7 +333,7 @@ getUserPullRequests : String
 getUserPullRequests =
     """
     query {
-      search(type: ISSUE, query: "org:fracturedatlas type:PR is:MERGED author:user", last: 10) {
+      search(type: ISSUE, query: "org:fracturedatlas type:PR is:MERGED author:user sort:updated-desc", last: 10) {
         nodes {
           __typename
           ... on PullRequest {
@@ -355,7 +357,7 @@ getRepoPullRequests =
     """
     query {
       repository(owner: "FracturedAtlas", name: "repoName") {
-        pullRequests(last: 3) {
+        pullRequests(first: 10, orderBy: {field: CREATED_AT, direction: DESC}) {
           nodes {
             number
             title

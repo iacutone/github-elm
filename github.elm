@@ -516,13 +516,11 @@ baseUrl =
 auth : String
 auth =
     -- "Bearer <your token>"
-    "Bearer 3a56d70db49525c7bff92e6df61d9bc8ed70901d"
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( initialModel, Http.send ParseOrgJson (request getUsersAndRepos) )
-
+    ( initialModel, Http.send ParseOrgJson (request getUsersAndRepos))
 
 initialModel : Model
 initialModel =

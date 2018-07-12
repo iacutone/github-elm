@@ -15,6 +15,7 @@ type alias Model =
     , organization : Maybe Organization
     , userPullRequests : Maybe UserPullRequests
     , repoPullRequests : Maybe RepoPullRequests
+    , currentData : CurrentData
     , currentUser : String
     , currentRepo : String
     }
@@ -77,6 +78,11 @@ type alias RepoPullRequest =
     }
 
 
+type CurrentData
+    = ByUser
+    | ByRepo
+
+
 type PullRequestButton
     = UserPullRequestButton
     | RepoPullRequestButton
@@ -87,7 +93,7 @@ type PullRequestButton
 
 
 type Msg
-    = ParseUsersJson (Result Http.Error String)
+    = ParseOrgJson (Result Http.Error String)
     | ParseUserPullRequestJson (Result Http.Error String)
     | ParseRepoPullRequestJson (Result Http.Error String)
     | DisplayUserData String
@@ -100,7 +106,7 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ParseUsersJson (Ok res) ->
+        ParseOrgJson (Ok res) ->
             case decodeString decodeOrganization res of
                 Ok res ->
                     ( { model | organization = Just res, message = "" }, Cmd.none )
@@ -108,7 +114,7 @@ update msg model =
                 Err error ->
                     ( { model | message = error, organization = Nothing }, Cmd.none )
 
-        ParseUsersJson (Err res) ->
+        ParseOrgJson (Err res) ->
             ( { model | organization = Nothing }, Cmd.none )
 
         DisplayUserData user ->
@@ -116,14 +122,14 @@ update msg model =
                 json =
                     Regex.replace Regex.All (Regex.regex "user") (\_ -> user) getUserPullRequests
             in
-                ( { model | currentUser = user }, Http.send ParseUserPullRequestJson (request json) )
+                ( { model | currentUser = user, currentData = ByUser }, Http.send ParseUserPullRequestJson (request json) )
 
         DisplayRepoData repo ->
             let
                 json =
                     Regex.replace Regex.All (Regex.regex "repoName") (\_ -> repo) getRepoPullRequests
             in
-                ( { model | currentRepo = repo }, Http.send ParseRepoPullRequestJson (request json) )
+                ( { model | currentRepo = repo, currentData = ByRepo }, Http.send ParseRepoPullRequestJson (request json) )
 
         ParseUserPullRequestJson (Ok res) ->
             case decodeString decodeUserPullRequests res of
@@ -238,10 +244,9 @@ decodeRepoPullRequest =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ div [] [ displayOrganization model ]
-        , div [] [ displayUserPullRequests model ]
-        , div [] [ displayRepoPullRequests model ]
+    div [ class "wrapper" ]
+        [ displayOrganization model
+        , displayTable model
         ]
 
 
@@ -266,10 +271,9 @@ displayOrganization model =
                     repoNodes =
                         List.map .node repos
                 in
-                    div []
+                    header []
                         [ ul [] (List.map displayUser userNodes)
                         , ul [] (List.map displayRepo repoNodes)
-                        , div [] [ text model.message ]
                         ]
 
             Nothing ->
@@ -286,6 +290,16 @@ displayRepo repo =
     li [] [ a [ href "#", onClick (DisplayRepoData repo.name) ] [ text repo.name ] ]
 
 
+displayTable : Model -> Html Msg
+displayTable model =
+    case model.currentData of
+        ByUser ->
+            displayUserPullRequests model
+
+        ByRepo ->
+            displayRepoPullRequests model
+
+
 displayUserPullRequests : Model -> Html Msg
 displayUserPullRequests model =
     let
@@ -295,7 +309,7 @@ displayUserPullRequests model =
         case pullRequests of
             Just pullRequests ->
                 div [ class "table-wrapper" ]
-                    [ div [] [ pullRequestQuantityButtons UserPullRequestButton ]
+                    [ pullRequestQuantityButtons UserPullRequestButton
                     , table []
                         [ caption [] [ h1 [] [ text ("Pull Requests by " ++ model.currentUser) ] ]
                         , thead []
@@ -342,7 +356,7 @@ displayRepoPullRequests model =
         case pullRequests of
             Just pullRequests ->
                 div [ class "table-wrapper" ]
-                    [ div [] [ pullRequestQuantityButtons RepoPullRequestButton ]
+                    [ pullRequestQuantityButtons RepoPullRequestButton
                     , table []
                         [ caption [] [ h1 [] [ text ("Pull Requests in " ++ model.currentRepo) ] ]
                         , thead []
@@ -502,13 +516,11 @@ baseUrl =
 auth : String
 auth =
     -- "Bearer <your token>"
-    ""
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( initialModel, Http.send ParseUsersJson (request getUsersAndRepos) )
-
+    ( initialModel, Http.send ParseOrgJson (request getUsersAndRepos))
 
 initialModel : Model
 initialModel =
@@ -516,6 +528,7 @@ initialModel =
     , userPullRequests = Nothing
     , repoPullRequests = Nothing
     , message = "Waiting for a response..."
+    , currentData = ByUser
     , currentUser = ""
     , currentRepo = ""
     }

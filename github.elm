@@ -1,13 +1,13 @@
 module GitHubStats exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (href, class, target)
+import Html.Attributes exposing (class, href, target)
 import Html.Events exposing (onClick)
 import Http
-import Json.Decode exposing (at, string, field, decodeString, int)
+import Json.Decode exposing (at, decodeString, field, int, string)
 import Json.Encode as Encode
-import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded, requiredAt)
-import Regex exposing (replace, regex)
+import Json.Decode.Pipeline exposing (decode, optional, hardcoded, required, requiredAt)
+import Regex exposing (regex, replace)
 
 
 type alias Model =
@@ -520,7 +520,8 @@ auth =
 
 init : ( Model, Cmd Msg )
 init =
-    ( initialModel, Http.send ParseOrgJson (request getUsersAndRepos))
+    ( initialModel, Http.send ParseOrgJson (request getUsersAndRepos) )
+
 
 initialModel : Model
 initialModel =

@@ -2,7 +2,7 @@ module GitHubStats exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (class, href, target)
-import Html.Attributes.Aria exposing (role)
+import Html.Attributes.A11y exposing (labelledBy, roleDescription)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode exposing (at, decodeString, field, int, string)

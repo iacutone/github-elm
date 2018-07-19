@@ -2,6 +2,7 @@ module GitHubStats exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (class, href, target)
+import Html.Attributes.Aria exposing (role)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode exposing (at, decodeString, field, int, string)
@@ -271,7 +272,7 @@ displayOrganization model =
                     repoNodes =
                         List.map .node repos
                 in
-                    header []
+                    header [ role "search" ]
                         [ ul [] (List.map displayUser userNodes)
                         , ul [] (List.map displayRepo repoNodes)
                         ]

@@ -1,8 +1,8 @@
 module GitHubStats exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, target)
-import Html.Attributes.A11y exposing (labelledBy, roleDescription)
+import Html.Attributes exposing (attribute, class, href, id, scope, target, title)
+import Html.Attributes.A11y exposing (columnHeader, group, labelledBy, search)
 import Html.Events exposing (onClick)
 import Http
 import Json.Decode exposing (at, decodeString, field, int, string)
@@ -245,9 +245,10 @@ decodeRepoPullRequest =
 
 view : Model -> Html Msg
 view model =
-    div [ class "wrapper" ]
+    div [ class "site-wrapper" ]
         [ displayOrganization model
-        , displayTable model
+        , main_ []
+            [ displayTable model ]
         ]
 
 
@@ -272,9 +273,18 @@ displayOrganization model =
                     repoNodes =
                         List.map .node repos
                 in
-                    header [ role "search" ]
-                        [ ul [] (List.map displayUser userNodes)
-                        , ul [] (List.map displayRepo repoNodes)
+                    header [ class "is-visible", search ]
+                        [ div [ class "wrapper" ]
+                            [ h2 [] [ text "Filter By" ]
+                            , section [ class "list-authors" ]
+                                [ h3 [] [ text "Author" ]
+                                , ul [ class "list-reset" ] (List.map displayUser userNodes)
+                                ]
+                            , section [ class "list-repos" ]
+                                [ h3 [] [ text "Repo" ]
+                                , ul [ class "list-reset" ] (List.map displayRepo repoNodes)
+                                ]
+                            ]
                         ]
 
             Nothing ->
@@ -311,15 +321,15 @@ displayUserPullRequests model =
             Just pullRequests ->
                 div [ class "table-wrapper" ]
                     [ pullRequestQuantityButtons UserPullRequestButton
-                    , table []
-                        [ caption [] [ h1 [] [ text ("Pull Requests by " ++ model.currentUser) ] ]
+                    , table [ labelledBy "table-header" ]
+                        [ caption [ id "table-header" ] [ h1 [] [ text ("Pull Requests by " ++ model.currentUser) ] ]
                         , thead []
                             [ tr []
-                                [ th [] [ text "PR" ]
-                                , th [] [ text "Title" ]
-                                , th [] [ text "Repo" ]
-                                , th [] [ text "Date Created" ]
-                                , th [] [ text "LoC" ]
+                                [ th [ class "th-prno", columnHeader, scope "col" ] [ text "PR" ]
+                                , th [ class "th-title", columnHeader, scope "col" ] [ text "Title" ]
+                                , th [ class "th-repo", columnHeader, scope "col" ] [ text "Repo" ]
+                                , th [ class "th-date", columnHeader, scope "col" ] [ text "Date Created" ]
+                                , th [ class "th-loc", columnHeader, scope "col" ] [ text "LoC" ]
                                 ]
                             ]
                         , tbody [] (List.map userPullRequestDataRow pullRequests.nodes)
@@ -334,17 +344,19 @@ pullRequestQuantityButtons : PullRequestButton -> Html Msg
 pullRequestQuantityButtons pullRequestsButton =
     case pullRequestsButton of
         UserPullRequestButton ->
-            div []
-                [ button [ onClick (UpdateUserPullRequestQuantity "10") ] [ text "10" ]
-                , button [ onClick (UpdateUserPullRequestQuantity "20") ] [ text "20" ]
-                , button [ onClick (UpdateUserPullRequestQuantity "50") ] [ text "50" ]
+            div [ class "button-wrapper", group ]
+                [ label [] [ text "Rows " ]
+                , button [ class "btn", onClick (UpdateUserPullRequestQuantity "10") ] [ text "10" ]
+                , button [ class "btn", onClick (UpdateUserPullRequestQuantity "20") ] [ text "20" ]
+                , button [ class "btn", onClick (UpdateUserPullRequestQuantity "50") ] [ text "50" ]
                 ]
 
         RepoPullRequestButton ->
-            div []
-                [ button [ onClick (UpdateRepoPullRequestQuantity "10") ] [ text "10" ]
-                , button [ onClick (UpdateRepoPullRequestQuantity "20") ] [ text "20" ]
-                , button [ onClick (UpdateRepoPullRequestQuantity "50") ] [ text "50" ]
+            div [ class "button-wrapper", group ]
+                [ label [] [ text "Rows " ]
+                , button [ class "btn", onClick (UpdateRepoPullRequestQuantity "10") ] [ text "10" ]
+                , button [ class "btn", onClick (UpdateRepoPullRequestQuantity "20") ] [ text "20" ]
+                , button [ class "btn", onClick (UpdateRepoPullRequestQuantity "50") ] [ text "50" ]
                 ]
 
 
@@ -358,15 +370,15 @@ displayRepoPullRequests model =
             Just pullRequests ->
                 div [ class "table-wrapper" ]
                     [ pullRequestQuantityButtons RepoPullRequestButton
-                    , table []
-                        [ caption [] [ h1 [] [ text ("Pull Requests in " ++ model.currentRepo) ] ]
+                    , table [ labelledBy "table-header" ]
+                        [ caption [ id "table-header" ] [ h1 [] [ text ("Pull Requests in " ++ model.currentRepo) ] ]
                         , thead []
                             [ tr []
-                                [ th [] [ text "PR" ]
-                                , th [] [ text "Title" ]
-                                , th [] [ text "Author" ]
-                                , th [] [ text "Date Created" ]
-                                , th [] [ text "LoC" ]
+                                [ th [ class "th-prno", columnHeader, scope "col" ] [ text "PR" ]
+                                , th [ class "th-title", columnHeader, scope "col" ] [ text "Title" ]
+                                , th [ class "th-author", columnHeader, scope "col" ] [ text "Author" ]
+                                , th [ class "th-date", columnHeader, scope "col" ] [ text "Date Created" ]
+                                , th [ class "th-loc", columnHeader, scope "col" ] [ text "LoC" ]
                                 ]
                             ]
                         , tbody [] (List.map repoPullRequestDataRow pullRequests.nodes)
@@ -380,30 +392,34 @@ displayRepoPullRequests model =
 userPullRequestDataRow : UserPullRequest -> Html Msg
 userPullRequestDataRow pullRequest =
     tr []
-        [ th [] [ a [ href pullRequest.url, target "_blank" ] [ text (toString pullRequest.prNumber) ] ]
-        , td [] [ text pullRequest.title ]
-        , td [] [ text pullRequest.repoName ]
-        , td [] [ text pullRequest.createdAt ]
-        , td []
-            [ ul [ class "list-reset" ] [ li [] [ text (toString pullRequest.additions) ] ]
-            , li [] [ text (toString pullRequest.deletions) ]
+        [ th [ attribute "data-title" "pr-no", scope "row" ] [ a [ href pullRequest.url, target "_blank", title "View this PR on GitHub" ] [ text (toString pullRequest.prNumber) ] ]
+        , td [ attribute "data-title" "pr-title" ] [ text pullRequest.title ]
+        , td [ attribute "data-title" "repo-title" ] [ text pullRequest.repoName ]
+        , td [ attribute "data-title" "pr-date" ] [ text pullRequest.createdAt ]
+        , td [ attribute "data-title" "pr-loc" ]
+            [ ul [ class "list-reset" ]
+                [ li [ attribute "aria-label" "LoC Differences in this PR" ] [ text (locChange pullRequest.additions pullRequest.deletions) ]
+                , li [ attribute "aria-label" "LoC Additions in this PR" ] [ text (toString pullRequest.additions) ]
+                , li [ attribute "aria-label" "LoC Deletions in this PR" ] [ text (toString pullRequest.deletions) ]
+                ]
             ]
-        , li [] [ text (locChange pullRequest.additions pullRequest.deletions) ]
         ]
 
 
 repoPullRequestDataRow : RepoPullRequest -> Html Msg
 repoPullRequestDataRow pullRequest =
     tr []
-        [ th [] [ a [ href pullRequest.url, target "_blank" ] [ text (toString pullRequest.prNumber) ] ]
-        , td [] [ text pullRequest.title ]
-        , td [] [ text pullRequest.author ]
-        , td [] [ text pullRequest.createdAt ]
-        , td []
-            [ ul [ class "list-reset" ] [ li [] [ text (toString pullRequest.additions) ] ]
-            , li [] [ text (toString pullRequest.deletions) ]
+        [ th [ attribute "data-title" "pr-no", scope "row" ] [ a [ href pullRequest.url, target "_blank", title "View this PR on GitHub" ] [ text (toString pullRequest.prNumber) ] ]
+        , td [ attribute "data-title" "pr-title" ] [ text pullRequest.title ]
+        , td [ attribute "data-title" "pr-author" ] [ text pullRequest.author ]
+        , td [ attribute "data-title" "pr-date" ] [ text pullRequest.createdAt ]
+        , td [ attribute "data-title" "pr-loc" ]
+            [ ul [ class "list-reset" ]
+                [ li [ attribute "aria-label" "LoC Differences in this PR" ] [ text (locChange pullRequest.additions pullRequest.deletions) ]
+                , li [ attribute "aria-label" "LoC Additions in this PR" ] [ text (toString pullRequest.additions) ]
+                , li [ attribute "aria-label" "LoC Deletions in this PR" ] [ text (toString pullRequest.deletions) ]
+                ]
             ]
-        , li [] [ text (locChange pullRequest.additions pullRequest.deletions) ]
         ]
 
 

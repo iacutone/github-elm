@@ -398,9 +398,9 @@ userPullRequestDataRow pullRequest =
         , td [ attribute "data-title" "pr-date" ] [ text pullRequest.createdAt ]
         , td [ attribute "data-title" "pr-loc" ]
             [ ul [ class "list-reset" ]
-                [ li [ attribute "aria-label" "LoC Differences in this PR" ] [ text (locChange pullRequest.additions pullRequest.deletions) ]
-                , li [ attribute "aria-label" "LoC Additions in this PR" ] [ text (toString pullRequest.additions) ]
-                , li [ attribute "aria-label" "LoC Deletions in this PR" ] [ text (toString pullRequest.deletions) ]
+                [ li [ attribute "aria-label" "LoC Differences in this PR", title "Difference" ] [ text (locChange pullRequest.additions pullRequest.deletions) ]
+                , li [ attribute "aria-label" "LoC Additions in this PR", title "Additions" ] [ text (toString pullRequest.additions) ]
+                , li [ attribute "aria-label" "LoC Deletions in this PR", title "Deletions" ] [ text (toString pullRequest.deletions) ]
                 ]
             ]
         ]
@@ -415,9 +415,9 @@ repoPullRequestDataRow pullRequest =
         , td [ attribute "data-title" "pr-date" ] [ text pullRequest.createdAt ]
         , td [ attribute "data-title" "pr-loc" ]
             [ ul [ class "list-reset" ]
-                [ li [ attribute "aria-label" "LoC Differences in this PR" ] [ text (locChange pullRequest.additions pullRequest.deletions) ]
-                , li [ attribute "aria-label" "LoC Additions in this PR" ] [ text (toString pullRequest.additions) ]
-                , li [ attribute "aria-label" "LoC Deletions in this PR" ] [ text (toString pullRequest.deletions) ]
+                [ li [ attribute "aria-label" "LoC Differences in this PR", title "Difference" ] [ text (locChange pullRequest.additions pullRequest.deletions) ]
+                , li [ attribute "aria-label" "LoC Additions in this PR", title "Additions" ] [ text (toString pullRequest.additions) ]
+                , li [ attribute "aria-label" "LoC Deletions in this PR", title "Deletions" ] [ text (toString pullRequest.deletions) ]
                 ]
             ]
         ]
@@ -455,7 +455,7 @@ getUsersAndRepos =
     """
     query {
       organization(login: "FracturedAtlas") {
-        repositories(last: 3, orderBy: {field: PUSHED_AT, direction: ASC}) {
+        repositories(first: 11, orderBy: {field: UPDATED_AT, direction: DESC}) {
           edges {
             node {
               id
@@ -464,7 +464,7 @@ getUsersAndRepos =
           }
         }
         team(slug: "fa-dev") {
-          members(first: 2, orderBy: {field: LOGIN, direction: ASC}) {
+          members(first: 10, orderBy: {field: LOGIN, direction: ASC}) {
             edges {
               node {
                 id

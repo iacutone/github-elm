@@ -1,0 +1,382 @@
+@charset "UTF-8";
+html {
+  box-sizing: border-box;
+  font-size: 1em;
+}
+
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+body {
+  background: #eaeced;
+  font-family: "Roboto", sans-serif;
+  margin: 0;
+}
+
+.list-reset {
+  list-style: none;
+  padding-left: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+.site-wrapper {
+  align-items: stretch;
+  display: flex;
+}
+
+table thead th {
+  z-index: 1;
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+  font-weight: 300;
+  letter-spacing: 1px;
+  padding: 8px;
+  transition: 300ms;
+}
+
+header[role=search] {
+  background: #1f1f23;
+  color: #d7dfe2;
+  margin-left: -280px;
+  position: relative;
+  transition: margin 500ms ease;
+  min-height: 100vh;
+}
+
+header[role=search].is-visible {
+  margin-left: 0;
+}
+
+header[role=search] button.filter {
+  background: transparent;
+  border: 0;
+  color: white;
+  font-size: 0.8rem;
+  opacity: 0.5;
+  order: 1;
+  padding: 16px;
+  position: absolute;
+  text-align: center;
+  text-transform: uppercase;
+  transition: opacity 500ms ease;
+  top: 0;
+  right: 0;
+}
+
+header[role=search] button.filter:hover,
+header[role=search] button.filter:focus {
+  opacity: 0.85;
+}
+
+header[role=search] button.filter svg {
+  display: block;
+  margin: 0 auto 8px;
+  width: 24px;
+}
+
+header[role=search] .wrapper {
+  font-weight: 300;
+  padding: 16px 70px 16px 16px;
+  width: 350px;
+}
+
+header[role=search] .wrapper h2,
+header[role=search] .wrapper h3 {
+  margin-top: 0;
+}
+
+header[role=search] .wrapper h2 {
+  font-weight: 300;
+}
+
+header[role=search] .wrapper a {
+  color: white;
+  opacity: 0.75;
+}
+
+header[role=search] .wrapper a:hover,
+header[role=search] .wrapper a:focus {
+  opacity: 0.9;
+}
+
+header[role=search] .wrapper section+section {
+  margin-top: 32px;
+}
+
+header[role=search] .btn:hover,
+header[role=search] .btn:focus {
+  box-shadow: inset 0px 0px 0px 2px white;
+}
+
+.list-authors ul {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.list-authors ul li>a {
+  display: block;
+  padding: 4px;
+}
+
+.list-authors ul img {
+  border-radius: 3px;
+}
+
+.list-repos li {
+  margin-bottom: 8px;
+}
+
+.table-wrapper {
+  padding: 0 16px;
+  min-width: 760px;
+}
+
+.table-wrapper .button-wrapper {
+  align-items: center;
+  border: 0;
+  display: flex;
+  font-size: 0.9rem;
+  font-weight: 300;
+  justify-content: flex-end;
+  padding: 16px 16px 0;
+  width: 100%;
+}
+
+.table-wrapper .button-wrapper label {
+  margin-right: 8px;
+}
+
+.table-wrapper .btn {
+  background-color: #d7dfe2;
+  border-color: #d7dfe2;
+  color: #88609d;
+}
+
+.table-wrapper .btn:hover,
+.table-wrapper .btn:focus {
+  background-color: #88609d;
+  color: white;
+}
+
+.table-wrapper .btn:first-of-type {
+  border-radius: 3px 0 0 3px;
+}
+
+.table-wrapper .btn:last-of-type {
+  border-radius: 0 3px 3px 0;
+}
+
+table {
+  border-spacing: 0 8px;
+  table-layout: fixed;
+  width: 100%;
+}
+
+table caption h1 {
+  color: #1f1f23;
+  font-weight: 300;
+  margin: 0;
+  text-align: left;
+}
+
+table a {
+  border-bottom: 1px dotted transparent;
+  color: #88609d;
+  text-decoration: none;
+}
+
+table a:hover,
+table a:focus {
+  border-bottom-color: #88609d;
+}
+
+thead th {
+  background: #d7dfe2;
+  border-radius: 3px 3px 0 0;
+  color: #1f1f23;
+  font-weight: 300;
+  padding-top: 12px;
+  padding-bottom: 8px;
+  position: -webkit-sticky;
+  position: sticky;
+  text-align: left;
+  top: 0;
+}
+
+thead th:first-of-type {
+  text-align: center;
+}
+
+thead th.th-prno,
+thead th.th-loc {
+  width: 10%;
+}
+
+thead th.th-title {
+  width: 30%;
+}
+
+thead th.th-repo {
+  width: 20%;
+}
+
+thead th.th-auth,
+thead th.th-date {
+  width: 15%;
+}
+
+thead th[aria-sort] span[role="button"]:after {
+  content: "↕";
+  padding-left: 6px;
+}
+
+thead th[aria-sort]:hover span[role="button"]:after,
+thead th[aria-sort]:focus span[role="button"]:after {
+  color: #88609d;
+}
+
+thead th[aria-sort="ascending"] span[role="button"]:after {
+  content: "▴";
+}
+
+thead th[aria-sort="descending"] span[role="button"]:after {
+  content: "▾";
+}
+
+tbody th,
+tbody td {
+  background: white;
+}
+
+tbody th {
+  border-radius: 3px 0 0 3px;
+}
+
+tbody th a {
+  color: white;
+  background-color: #1f1f23;
+  border-bottom: 0;
+  border-radius: 2px;
+  font-size: 0.8rem;
+  padding: 6px 8px;
+  position: relative;
+}
+
+tbody th a:before {
+  background-color: #1f1f23;
+  content: "";
+  display: block;
+  -webkit-mask-image: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/39377/link.svg);
+  mask-image: url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/39377/link.svg);
+  opacity: 0;
+  transition: opacity 500ms ease;
+  position: absolute;
+  top: 6px;
+  left: -20px;
+  height: 20px;
+  width: 16px;
+}
+
+tbody th a:hover:before,
+tbody th a:focus:before {
+  opacity: 0.7;
+}
+
+tbody td[data-title="pr-title"],
+tbody td[data-title="repo-title"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+tbody td[data-title="pr-loc"] ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+tbody td[data-title="pr-loc"] li {
+  font-size: 75%;
+  padding: 0 4px;
+  text-align: center;
+}
+
+tbody td[data-title="pr-loc"] li[title="Difference"] {
+  font-size: 150%;
+  width: 100%;
+}
+
+tbody td[data-title="pr-loc"] li[title="Additions"] {
+  color: #28a745;
+}
+
+tbody td[data-title="pr-loc"] li[title="Deletions"] {
+  color: #cb2431;
+}
+
+tbody td:last-of-type {
+  border-radius: 0 3px 3px 0;
+}
+
+.repo-artfully th>a {
+  background-color: #0079bf;
+}
+
+.repo-artfully th>a:before {
+  background-color: #0079bf;
+}
+
+.repo-artfully td[data-title="repo-title"] {
+  color: #0079bf;
+}
+
+.repo-fxfa th>a {
+  background-color: #61bd4f;
+}
+
+.repo-fxfa th>a:before {
+  background-color: #61bd4f;
+}
+
+.repo-fxfa td[data-title="repo-title"] {
+  color: #61bd4f;
+}
+
+.repo-sf th>a {
+  background-color: #ff80ce;
+}
+
+.repo-sf th>a:before {
+  background-color: #ff80ce;
+}
+
+.repo-sf td[data-title="repo-title"] {
+  color: #ff80ce;
+}
+
+.repo-www th>a {
+  background-color: #f2d600;
+}
+
+.repo-www th>a:before {
+  background-color: #f2d600;
+}
+
+.repo-www td[data-title="repo-title"] {
+  color: #f2d600;
+}
+
+footer {
+  font-weight: 300;
+  padding: 32px 16px 16px;
+}

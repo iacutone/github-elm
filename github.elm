@@ -5,6 +5,8 @@ import Html.Attributes exposing (attribute, class, href, id, scope, target, titl
 import Html.Attributes.A11y exposing (columnHeader, group, labelledBy, search)
 import Html.Events exposing (onClick)
 import Http
+import Svg exposing (path, svg)
+import Svg.Attributes exposing (d, fill, viewBox)
 import Json.Decode exposing (at, decodeString, field, int, string)
 import Json.Encode as Encode
 import Json.Decode.Pipeline exposing (decode, optional, hardcoded, required, requiredAt)
@@ -274,7 +276,11 @@ displayOrganization model =
                         List.map .node repos
                 in
                     header [ class "is-visible", search ]
-                        [ div [ class "wrapper" ]
+                        [ button [ class "filter", attribute "type" "button" ]
+                            [ svgFilter
+                            , span [] [ text "Filter" ]
+                            ]
+                        , div [ class "wrapper" ]
                             [ h2 [] [ text "Filter By" ]
                             , section [ class "list-authors" ]
                                 [ h3 [] [ text "Author" ]
@@ -289,6 +295,18 @@ displayOrganization model =
 
             Nothing ->
                 div [] []
+
+
+svgFilter : Html.Html msg
+svgFilter =
+    svg
+        [ viewBox "18 13 63 71" ]
+        [ path
+            [ fill "#FFFFFF"
+            , d "M80 15l-3-2H21l-3 2v3l15 24c3 6 5 13 5 20v20l2 2 1 1 2-1 15-7 2-3V62c0-7 2-14 5-20l15-24v-3zM60 39c-4 7-6 15-6 23v10l-10 5V62c0-8-2-16-6-23L26 19h46L60 39z"
+            ]
+            []
+        ]
 
 
 displayUser : User -> Html Msg

@@ -134,12 +134,12 @@ update msg model =
                 token =
                     model.bearerToken
             in
-            case token of
-                Just token ->
-                    ( { model | currentUser = user, currentData = ByUser }, Http.send ParseUserPullRequestJson (request token json) )
+                case token of
+                    Just token ->
+                        ( { model | currentUser = user, currentData = ByUser }, Http.send ParseUserPullRequestJson (request token json) )
 
-                Nothing ->
-                    ( { model | bearerToken = Nothing }, Cmd.none )
+                    Nothing ->
+                        ( { model | bearerToken = Nothing }, Cmd.none )
 
         DisplayRepoData repo ->
             let
@@ -149,12 +149,12 @@ update msg model =
                 token =
                     model.bearerToken
             in
-            case token of
-                Just token ->
-                    ( { model | currentRepo = repo, currentData = ByRepo }, Http.send ParseRepoPullRequestJson (request token json) )
+                case token of
+                    Just token ->
+                        ( { model | currentRepo = repo, currentData = ByRepo }, Http.send ParseRepoPullRequestJson (request token json) )
 
-                Nothing ->
-                    ( { model | bearerToken = Nothing }, Cmd.none )
+                    Nothing ->
+                        ( { model | bearerToken = Nothing }, Cmd.none )
 
         ParseUserPullRequestJson (Ok res) ->
             case decodeString decodeUserPullRequests res of
@@ -189,12 +189,12 @@ update msg model =
                 token =
                     model.bearerToken
             in
-            case token of
-                Just token ->
-                    ( model, Http.send ParseUserPullRequestJson (request token updated) )
+                case token of
+                    Just token ->
+                        ( model, Http.send ParseUserPullRequestJson (request token updated) )
 
-                Nothing ->
-                    ( { model | bearerToken = Nothing }, Cmd.none )
+                    Nothing ->
+                        ( { model | bearerToken = Nothing }, Cmd.none )
 
         UpdateRepoPullRequestQuantity num ->
             let
@@ -207,19 +207,19 @@ update msg model =
                 token =
                     model.bearerToken
             in
-            case token of
-                Just token ->
-                    ( model, Http.send ParseRepoPullRequestJson (request token updated) )
+                case token of
+                    Just token ->
+                        ( model, Http.send ParseRepoPullRequestJson (request token updated) )
 
-                Nothing ->
-                    ( { model | bearerToken = Nothing }, Cmd.none )
+                    Nothing ->
+                        ( { model | bearerToken = Nothing }, Cmd.none )
 
         UpdateBearerToken token ->
             let
                 bearerToken =
                     "Bearer " ++ token
             in
-            ( { model | bearerToken = Just bearerToken }, Http.send ParseOrgJson (request bearerToken getUsersAndRepos) )
+                ( { model | bearerToken = Just bearerToken }, Http.send ParseOrgJson (request bearerToken getUsersAndRepos) )
 
         UpdateBearerTokenInput input ->
             ( { model | bearerTokenInput = input }, Cmd.none )
@@ -307,27 +307,28 @@ site model =
         token =
             model.bearerToken
     in
-    case token of
-        Just token ->
-            [ displayOrganization model
-            , main_ []
-                [ displayTable model ]
-            ]
+        case token of
+            Just token ->
+                [ displayOrganization model
+                , main_ []
+                    [ displayTable model ]
+                ]
 
-        Nothing ->
-            [ bearerTokenForm model ]
+            Nothing ->
+                [ bearerTokenForm model ]
 
 
 bearerTokenForm : Model -> Html Msg
 bearerTokenForm model =
-    div []
+    div [ class "entry-form" ]
         [ input
             [ Html.Attributes.type_ "text"
+            , attribute "placeholder" "Enter your GitHub token"
             , onInput UpdateBearerTokenInput
             ]
             []
         , button
-            [ onClick (UpdateBearerToken model.bearerTokenInput) ]
+            [ class "btn", onClick (UpdateBearerToken model.bearerTokenInput) ]
             [ text "Go!" ]
         ]
 
@@ -338,50 +339,49 @@ displayOrganization model =
         organization =
             model.organization
     in
-    case organization of
-        Just organization ->
-            let
-                users =
-                    organization.users
+        case organization of
+            Just organization ->
+                let
+                    users =
+                        organization.users
 
-                repos =
-                    organization.repos
+                    repos =
+                        organization.repos
 
-                userNodes =
-                    List.map .node users
+                    userNodes =
+                        List.map .node users
 
-                repoNodes =
-                    List.map .node repos
-            in
-            header
-                [ class
-                    (if model.filterVisible then
-                        "is-visible"
-
-                     else
-                        ""
-                    )
-                , search
-                ]
-                [ button [ onClick ToggleFilter, class "filter", attribute "type" "button" ]
-                    [ svgFilter
-                    , span [] [ text "Filter" ]
-                    ]
-                , div [ class "wrapper" ]
-                    [ h2 [] [ text "Filter By" ]
-                    , section [ class "list-authors" ]
-                        [ h3 [] [ text "Author" ]
-                        , ul [ class "list-reset" ] (List.map displayUser userNodes)
+                    repoNodes =
+                        List.map .node repos
+                in
+                    header
+                        [ class
+                            (if model.filterVisible then
+                                "is-visible"
+                             else
+                                ""
+                            )
+                        , search
                         ]
-                    , section [ class "list-repos" ]
-                        [ h3 [] [ text "Repo" ]
-                        , ul [ class "list-reset" ] (List.map displayRepo repoNodes)
+                        [ button [ onClick ToggleFilter, class "filter", attribute "type" "button" ]
+                            [ svgFilter
+                            , span [] [ text "Filter" ]
+                            ]
+                        , div [ class "wrapper" ]
+                            [ h2 [] [ text "Filter By" ]
+                            , section [ class "list-authors" ]
+                                [ h3 [] [ text "Author" ]
+                                , ul [ class "list-reset" ] (List.map displayUser userNodes)
+                                ]
+                            , section [ class "list-repos" ]
+                                [ h3 [] [ text "Repo" ]
+                                , ul [ class "list-reset" ] (List.map displayRepo repoNodes)
+                                ]
+                            ]
                         ]
-                    ]
-                ]
 
-        Nothing ->
-            div [] []
+            Nothing ->
+                div [] []
 
 
 svgFilter : Html.Html msg
@@ -422,27 +422,27 @@ displayUserPullRequests model =
         pullRequests =
             model.userPullRequests
     in
-    case pullRequests of
-        Just pullRequests ->
-            div [ class "table-wrapper" ]
-                [ pullRequestQuantityButtons UserPullRequestButton
-                , table [ labelledBy "table-header" ]
-                    [ caption [ id "table-header" ] [ h1 [] [ text ("Pull Requests by " ++ model.currentUser) ] ]
-                    , thead []
-                        [ tr []
-                            [ th [ class "th-prno", columnHeader, scope "col" ] [ text "PR" ]
-                            , th [ class "th-title", columnHeader, scope "col" ] [ text "Title" ]
-                            , th [ class "th-repo", columnHeader, scope "col" ] [ text "Repo" ]
-                            , th [ class "th-date", columnHeader, scope "col" ] [ text "Date Created" ]
-                            , th [ class "th-loc", columnHeader, scope "col" ] [ text "LoC" ]
+        case pullRequests of
+            Just pullRequests ->
+                div [ class "table-wrapper" ]
+                    [ pullRequestQuantityButtons UserPullRequestButton
+                    , table [ labelledBy "table-header" ]
+                        [ caption [ id "table-header" ] [ h1 [] [ text ("Pull Requests by " ++ model.currentUser) ] ]
+                        , thead []
+                            [ tr []
+                                [ th [ class "th-prno", columnHeader, scope "col" ] [ text "PR" ]
+                                , th [ class "th-title", columnHeader, scope "col" ] [ text "Title" ]
+                                , th [ class "th-repo", columnHeader, scope "col" ] [ text "Repo" ]
+                                , th [ class "th-date", columnHeader, scope "col" ] [ text "Date Created" ]
+                                , th [ class "th-loc", columnHeader, scope "col" ] [ text "LoC" ]
+                                ]
                             ]
+                        , tbody [] (List.map userPullRequestDataRow pullRequests.nodes)
                         ]
-                    , tbody [] (List.map userPullRequestDataRow pullRequests.nodes)
                     ]
-                ]
 
-        Nothing ->
-            div [] []
+            Nothing ->
+                div [] []
 
 
 pullRequestQuantityButtons : PullRequestButton -> Html Msg
@@ -471,27 +471,27 @@ displayRepoPullRequests model =
         pullRequests =
             model.repoPullRequests
     in
-    case pullRequests of
-        Just pullRequests ->
-            div [ class "table-wrapper" ]
-                [ pullRequestQuantityButtons RepoPullRequestButton
-                , table [ labelledBy "table-header" ]
-                    [ caption [ id "table-header" ] [ h1 [] [ text ("Pull Requests in " ++ model.currentRepo) ] ]
-                    , thead []
-                        [ tr []
-                            [ th [ class "th-prno", columnHeader, scope "col" ] [ text "PR" ]
-                            , th [ class "th-title", columnHeader, scope "col" ] [ text "Title" ]
-                            , th [ class "th-author", columnHeader, scope "col" ] [ text "Author" ]
-                            , th [ class "th-date", columnHeader, scope "col" ] [ text "Date Created" ]
-                            , th [ class "th-loc", columnHeader, scope "col" ] [ text "LoC" ]
+        case pullRequests of
+            Just pullRequests ->
+                div [ class "table-wrapper" ]
+                    [ pullRequestQuantityButtons RepoPullRequestButton
+                    , table [ labelledBy "table-header" ]
+                        [ caption [ id "table-header" ] [ h1 [] [ text ("Pull Requests in " ++ model.currentRepo) ] ]
+                        , thead []
+                            [ tr []
+                                [ th [ class "th-prno", columnHeader, scope "col" ] [ text "PR" ]
+                                , th [ class "th-title", columnHeader, scope "col" ] [ text "Title" ]
+                                , th [ class "th-author", columnHeader, scope "col" ] [ text "Author" ]
+                                , th [ class "th-date", columnHeader, scope "col" ] [ text "Date Created" ]
+                                , th [ class "th-loc", columnHeader, scope "col" ] [ text "LoC" ]
+                                ]
                             ]
+                        , tbody [] (List.map repoPullRequestDataRow pullRequests.nodes)
                         ]
-                    , tbody [] (List.map repoPullRequestDataRow pullRequests.nodes)
                     ]
-                ]
 
-        Nothing ->
-            div [] []
+            Nothing ->
+                div [] []
 
 
 userPullRequestDataRow : UserPullRequest -> Html Msg
@@ -534,7 +534,7 @@ locChange additions deletions =
         diff =
             additions - deletions
     in
-    toString diff
+        toString diff
 
 
 request : String -> String -> Http.Request String
@@ -544,15 +544,15 @@ request token query =
             [ Http.header "Authorization" token
             ]
     in
-    Http.request
-        { method = "POST"
-        , headers = headers
-        , url = baseUrl
-        , body = Http.jsonBody (Encode.object [ ( "query", Encode.string query ) ])
-        , expect = Http.expectString
-        , timeout = Nothing
-        , withCredentials = False
-        }
+        Http.request
+            { method = "POST"
+            , headers = headers
+            , url = baseUrl
+            , body = Http.jsonBody (Encode.object [ ( "query", Encode.string query ) ])
+            , expect = Http.expectString
+            , timeout = Nothing
+            , withCredentials = False
+            }
 
 
 getUsersAndRepos : String

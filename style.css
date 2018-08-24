@@ -114,7 +114,9 @@ header[role=search] .wrapper section+section {
 }
 
 header[role=search] .btn:hover,
-header[role=search] .btn:focus {
+header[role=search] .btn:focus,
+.entry-form .btn:hover,
+.entry-form .btn:focus {
   box-shadow: inset 0px 0px 0px 2px white;
 }
 
@@ -379,4 +381,29 @@ tbody td:last-of-type {
 footer {
   font-weight: 300;
   padding: 32px 16px 16px;
+}
+
+/* Entry form styles */
+
+.entry-form {
+  align-items: center;
+  background: #1f1f23;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  min-width: 100vw;
+}
+
+.entry-form input[type=text],
+.entry-form button {
+  height: 42px;
+}
+
+.entry-form input[type=text] {
+  min-width: 40ch;
+}
+
+.entry-form button {
+  font-size: 1rem;
+  margin-left: 8px;
 }

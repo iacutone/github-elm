@@ -301,6 +301,7 @@ view model =
     div [ class "site-wrapper" ] (site model)
 
 
+site : Model -> List (Html Msg)
 site model =
     let
         token =

@@ -18,6 +18,7 @@ type alias Model =
     , organization : Maybe Organization
     , userPullRequests : Maybe UserPullRequests
     , repoPullRequests : Maybe RepoPullRequests
+    , filterVisible : Bool
     , currentData : CurrentData
     , currentUser : String
     , currentRepo : String
@@ -103,6 +104,7 @@ type Msg
     | DisplayRepoData String
     | UpdateUserPullRequestQuantity String
     | UpdateRepoPullRequestQuantity String
+    | ToggleFilter
     | None
 
 
@@ -175,6 +177,9 @@ update msg model =
                     Regex.replace Regex.All (Regex.regex "repoName") (\_ -> model.currentRepo) json
             in
                 ( model, Http.send ParseRepoPullRequestJson (request updated) )
+
+        ToggleFilter ->
+            ( { model | filterVisible = not model.filterVisible }, Cmd.none )
 
         None ->
             ( model, Cmd.none )
@@ -275,8 +280,16 @@ displayOrganization model =
                     repoNodes =
                         List.map .node repos
                 in
-                    header [ class "is-visible", search ]
-                        [ button [ class "filter", attribute "type" "button" ]
+                    header
+                        [ class
+                            (if model.filterVisible then
+                                "is-visible"
+                             else
+                                ""
+                            )
+                        , search
+                        ]
+                        [ button [ onClick ToggleFilter, class "filter", attribute "type" "button" ]
                             [ svgFilter
                             , span [] [ text "Filter" ]
                             ]
@@ -564,6 +577,7 @@ initialModel =
     , userPullRequests = Nothing
     , repoPullRequests = Nothing
     , message = "Waiting for a response..."
+    , filterVisible = True
     , currentData = ByUser
     , currentUser = ""
     , currentRepo = ""

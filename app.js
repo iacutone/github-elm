@@ -10853,27 +10853,10 @@ var _user$project$GitHubStats$svgFilter = A2(
 			{ctor: '[]'}),
 		_1: {ctor: '[]'}
 	});
-var _user$project$GitHubStats$Model = function (a) {
-	return function (b) {
-		return function (c) {
-			return function (d) {
-				return function (e) {
-					return function (f) {
-						return function (g) {
-							return function (h) {
-								return function (i) {
-									return function (j) {
-										return {message: a, organization: b, userPullRequests: c, repoPullRequests: d, filterVisible: e, currentData: f, currentUser: g, currentRepo: h, bearerToken: i, bearerTokenInput: j};
-									};
-								};
-							};
-						};
-					};
-				};
-			};
-		};
-	};
-};
+var _user$project$GitHubStats$Model = F9(
+	function (a, b, c, d, e, f, g, h, i) {
+		return {message: a, organization: b, userPullRequests: c, repoPullRequests: d, filterVisible: e, currentData: f, currentUser: g, currentRepo: h, bearerToken: i};
+	});
 var _user$project$GitHubStats$Organization = F2(
 	function (a, b) {
 		return {users: a, repos: b};
@@ -11097,14 +11080,12 @@ var _user$project$GitHubStats$decodeRepoPullRequests = A3(
 	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$GitHubStats$RepoPullRequests));
 var _user$project$GitHubStats$ByRepo = {ctor: 'ByRepo'};
 var _user$project$GitHubStats$ByUser = {ctor: 'ByUser'};
-var _user$project$GitHubStats$initialModel = {organization: _elm_lang$core$Maybe$Nothing, userPullRequests: _elm_lang$core$Maybe$Nothing, repoPullRequests: _elm_lang$core$Maybe$Nothing, message: 'Waiting for a response...', filterVisible: true, currentData: _user$project$GitHubStats$ByUser, currentUser: '', currentRepo: '', bearerToken: _elm_lang$core$Maybe$Nothing, bearerTokenInput: ''};
+var _user$project$GitHubStats$initialModel = {organization: _elm_lang$core$Maybe$Nothing, userPullRequests: _elm_lang$core$Maybe$Nothing, repoPullRequests: _elm_lang$core$Maybe$Nothing, message: 'Waiting for a response...', filterVisible: true, currentData: _user$project$GitHubStats$ByUser, currentUser: '', currentRepo: '', bearerToken: _elm_lang$core$Maybe$Nothing};
 var _user$project$GitHubStats$init = {ctor: '_Tuple2', _0: _user$project$GitHubStats$initialModel, _1: _elm_lang$core$Platform_Cmd$none};
 var _user$project$GitHubStats$RepoPullRequestButton = {ctor: 'RepoPullRequestButton'};
 var _user$project$GitHubStats$UserPullRequestButton = {ctor: 'UserPullRequestButton'};
 var _user$project$GitHubStats$None = {ctor: 'None'};
-var _user$project$GitHubStats$UpdateBearerTokenInput = function (a) {
-	return {ctor: 'UpdateBearerTokenInput', _0: a};
-};
+var _user$project$GitHubStats$SubmitForm = {ctor: 'SubmitForm'};
 var _user$project$GitHubStats$UpdateBearerToken = function (a) {
 	return {ctor: 'UpdateBearerToken', _0: a};
 };
@@ -11128,7 +11109,7 @@ var _user$project$GitHubStats$bearerTokenForm = function (model) {
 						_0: A2(_elm_lang$html$Html_Attributes$attribute, 'placeholder', 'Enter your GitHub token'),
 						_1: {
 							ctor: '::',
-							_0: _elm_lang$html$Html_Events$onInput(_user$project$GitHubStats$UpdateBearerTokenInput),
+							_0: _elm_lang$html$Html_Events$onInput(_user$project$GitHubStats$UpdateBearerToken),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -11143,8 +11124,7 @@ var _user$project$GitHubStats$bearerTokenForm = function (model) {
 						_0: _elm_lang$html$Html_Attributes$class('btn'),
 						_1: {
 							ctor: '::',
-							_0: _elm_lang$html$Html_Events$onClick(
-								_user$project$GitHubStats$UpdateBearerToken(model.bearerTokenInput)),
+							_0: _elm_lang$html$Html_Events$onClick(_user$project$GitHubStats$SubmitForm),
 							_1: {ctor: '[]'}
 						}
 					},
@@ -12250,14 +12230,21 @@ var _user$project$GitHubStats$update = F2(
 						_user$project$GitHubStats$ParseOrgJson,
 						A2(_user$project$GitHubStats$request, bearerToken, _user$project$GitHubStats$getUsersAndRepos))
 				};
-			case 'UpdateBearerTokenInput':
-				return {
-					ctor: '_Tuple2',
-					_0: _elm_lang$core$Native_Utils.update(
-						model,
-						{bearerTokenInput: _p7._0}),
-					_1: _elm_lang$core$Platform_Cmd$none
-				};
+			case 'SubmitForm':
+				var token = model.bearerToken;
+				var _p23 = token;
+				if (_p23.ctor === 'Just') {
+					return {
+						ctor: '_Tuple2',
+						_0: model,
+						_1: A2(
+							_elm_lang$http$Http$send,
+							_user$project$GitHubStats$ParseOrgJson,
+							A2(_user$project$GitHubStats$request, _p23._0, _user$project$GitHubStats$getUsersAndRepos))
+					};
+				} else {
+					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+				}
 			case 'ToggleFilter':
 				return {
 					ctor: '_Tuple2',
@@ -12275,7 +12262,7 @@ var _user$project$GitHubStats$main = _elm_lang$html$Html$program(
 		init: _user$project$GitHubStats$init,
 		view: _user$project$GitHubStats$view,
 		update: _user$project$GitHubStats$update,
-		subscriptions: function (_p23) {
+		subscriptions: function (_p24) {
 			return _elm_lang$core$Platform_Sub$none;
 		}
 	})();
